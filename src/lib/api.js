@@ -1,7 +1,8 @@
 import axios from 'axios';
 
-// The backend is running on port 8080
-const API_URL = 'http://localhost:8080/api/v1';
+const API_URL = import.meta.env.VITE_API_BASE_URL 
+  ? `${import.meta.env.VITE_API_BASE_URL}/api/v1` 
+  : 'http://localhost:8080/api/v1';
 
 const api = axios.create({
   baseURL: API_URL,
