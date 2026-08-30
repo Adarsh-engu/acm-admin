@@ -1,36 +1,30 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# ACM GRIET Admin Dashboard
 
-## Getting Started
+Welcome to the internal administrative dashboard for the ACM GRIET Student Chapter. This platform serves as the central command center for managing student recruitments, team organization, and chapter operations.
 
-First, run the development server:
+## Overview
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+The dashboard is designed to streamline the recruitment process by providing a unified, secure space for evaluating and managing applicants. It operates on a multi-tier permission system to ensure that data is routed to the correct reviewers while maintaining global visibility for the core leadership team.
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### Multi-Round Evaluation System
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+The recruitment pipeline is broken down into two primary phases: Round 1 and Round 2. 
+Applicants are evaluated based on their domain preferences (1st Priority and 2nd Priority). The system dynamically routes applicants to the respective Domain Leads for review.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### Role-Based Access
 
-## Learn More
+**1. Domain Leads**
+- **Targeted Reviewing:** Leads only see applicants who have selected their specific domain (e.g., Technical, Brand & Media, Event Management) as a priority.
+- **Decision Tracking:** Leads can approve, reject, or mark applicants as pending. Changes can be queued locally and saved in bulk.
+- **Round Finalization:** Once a lead has finished evaluating their applicants for a round, they can securely "Finalize" the results using their credentials, locking their decisions and filtering out rejected candidates to keep the workspace clean for the next round.
 
-To learn more about Next.js, take a look at the following resources:
+**2. Core Team & Global Admins**
+- **Global Oversight:** Core team members have an unrestricted view of all applicants across all domains. They can track the overarching status of an applicant (e.g., "Pending Review", "Shortlisted", "Rejected") based on the combined decisions of the respective domain leads.
+- **Data Export:** Admins can filter data dynamically and export clean, formatted applicant lists to Excel for external processing or university documentation.
+- **Team Management:** Admins can onboard new Domain Leads, assign them to specific domains, generate temporary passwords, and reset credentials for existing members.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Security & Workflow
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- **Secure Access:** The platform requires explicit authorization. Unauthenticated access is blocked, and credentials are required to finalize destructive or lock-in actions (like finalizing a recruitment round).
+- **Session Management:** Built-in safeguards ensure that only active, verified team members can view sensitive applicant information, such as contact details and university roll numbers.
+- **Profile Customization:** Users can manage their own security credentials and view their current role constraints within the system.
