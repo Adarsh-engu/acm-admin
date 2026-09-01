@@ -1,6 +1,7 @@
 import { createClient } from "@/utils/supabase/server"
 import { redirect } from "next/navigation"
 import { AddMemberDialog } from "./components/add-member-dialog"
+import { DeleteMemberButton } from "./components/delete-member-button"
 
 export default async function TeamPage() {
   const supabase = await createClient()
@@ -16,6 +17,10 @@ export default async function TeamPage() {
     .single()
 
   const isCentralAdmin = currentUserProfile?.role === "central_admin"
+  
+  if (!isCentralAdmin) {
+    redirect("/")
+  }
 
   // Fetch all members
   const { data: members, error } = await supabase
@@ -27,10 +32,12 @@ export default async function TeamPage() {
     <div className="flex flex-col gap-6">
       <div className="flex justify-between items-end">
         <div>
-          <h2 className="text-3xl font-display font-bold text-foreground">Team Directory</h2>
-          <p className="text-muted-foreground mt-1">Manage admin access and team roles.</p>
+          <h2 className="text-3xl font-display font-bold text-foreground">
+            Team Directory
+          </h2>
+          <p className="text-muted-foreground mt-1">Manage team access and roles.</p>
         </div>
-        {isCentralAdmin && <AddMemberDialog />}
+        <AddMemberDialog currentProfile={currentUserProfile} />
       </div>
 
       {error ? (
@@ -41,7 +48,14 @@ export default async function TeamPage() {
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 mt-4">
           {members?.map(member => (
             <div key={member.id} className="p-6 rounded-lg border border-border/50 bg-surface/50 transition-all hover:bg-surface hover:border-acm/30">
-              <h3 className="font-semibold text-lg">{member.username}</h3>
+              <div className="flex justify-between items-start">
+                <h3 className="font-semibold text-lg">{member.username}</h3>
+                <DeleteMemberButton 
+                  userId={member.id} 
+                  username={member.username} 
+                  currentUserId={user.id} 
+                />
+              </div>
               <div className="text-sm text-muted-foreground mt-3 flex flex-col gap-2">
                 <div className="flex items-center gap-2">
                   <span className="capitalize px-2 py-1 bg-background rounded-md text-xs font-medium text-foreground border border-border/50">

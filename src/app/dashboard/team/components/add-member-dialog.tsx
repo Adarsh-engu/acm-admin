@@ -23,7 +23,7 @@ import {
 } from "@/components/ui/select"
 import { useRouter } from "next/navigation"
 
-export function AddMemberDialog() {
+export function AddMemberDialog({ currentProfile }: { currentProfile?: any }) {
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -37,9 +37,15 @@ export function AddMemberDialog() {
     setError(null)
 
     const formData = new FormData(e.currentTarget)
-    formData.set("role", role)
-    if (role === "domain_lead") {
-      formData.set("domain", domain)
+    
+    if (currentProfile?.role === "domain_lead") {
+      formData.set("role", "domain_lead") // Assign them same role
+      formData.set("domain", currentProfile.domain)
+    } else {
+      formData.set("role", role)
+      if (role === "domain_lead") {
+        formData.set("domain", domain)
+      }
     }
 
     const res = await addTeamMember(formData)
@@ -77,21 +83,28 @@ export function AddMemberDialog() {
             <Input id="password" name="password" type="password" required className="bg-input/30" />
           </div>
 
-          <div className="space-y-2">
-            <Label>Role</Label>
-            <Select onValueChange={(val: string | null) => setRole(val || "")} required>
-              <SelectTrigger className="bg-input/30">
-                <SelectValue placeholder="Select a role" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="central_admin">Central Admin</SelectItem>
-                <SelectItem value="core_team">Core Team</SelectItem>
-                <SelectItem value="domain_lead">Domain Lead</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+          {currentProfile?.role === "domain_lead" ? (
+            <div className="space-y-2">
+              <Label>Role</Label>
+              <Input value="Domain Team Member" disabled className="bg-input/30 text-muted-foreground" />
+            </div>
+          ) : (
+            <div className="space-y-2">
+              <Label>Role</Label>
+              <Select onValueChange={(val: string | null) => setRole(val || "")} required>
+                <SelectTrigger className="bg-input/30">
+                  <SelectValue placeholder="Select a role" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="central_admin">Central Admin</SelectItem>
+                  <SelectItem value="core_team">Core Team</SelectItem>
+                  <SelectItem value="domain_lead">Domain Lead</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          )}
 
-          {role === "domain_lead" && (
+          {currentProfile?.role !== "domain_lead" && role === "domain_lead" && (
             <div className="space-y-2">
               <Label>Domain</Label>
               <Select onValueChange={(val: string | null) => setDomain(val || "")} required>

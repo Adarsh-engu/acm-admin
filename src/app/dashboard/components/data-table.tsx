@@ -42,16 +42,22 @@ interface DataTableProps {
   columns: any[]
   data: any[]
   profile?: any
+  overrideRound?: 1 | 2
+  hideRoundControls?: boolean
 }
 
 export function DataTable({
   columns,
   data,
   profile,
+  overrideRound,
+  hideRoundControls,
 }: DataTableProps) {
   const router = useRouter()
   const [pagination, setPagination] = React.useState({ pageIndex: 0, pageSize: 15 })
-  const [currentRound, setCurrentRound] = React.useState<1 | 2>(1)
+  const [localCurrentRound, setLocalCurrentRound] = React.useState<1 | 2>(1)
+  const currentRound = overrideRound || localCurrentRound
+
   const [localChanges, setLocalChanges] = React.useState<Record<string, Record<string, string>>>({})
   const [isSaving, setIsSaving] = React.useState(false)
   
@@ -170,22 +176,24 @@ export function DataTable({
     <div>
       <div className="flex items-center justify-between py-4">
         <div className="flex items-center gap-4">
-          <div className="flex bg-surface border border-border/50 rounded-lg p-1">
-            <button 
-              onClick={() => setCurrentRound(1)}
-              className={`px-4 py-1.5 rounded-md text-sm font-medium transition-colors ${currentRound === 1 ? 'bg-acm text-white' : 'text-muted-foreground hover:text-foreground'}`}
-            >
-              Round 1
-            </button>
-            <button 
-              onClick={() => setCurrentRound(2)}
-              className={`px-4 py-1.5 rounded-md text-sm font-medium transition-colors ${currentRound === 2 ? 'bg-acm text-white' : 'text-muted-foreground hover:text-foreground'}`}
-            >
-              Round 2
-            </button>
-          </div>
+          {!hideRoundControls && (
+            <div className="flex bg-surface border border-border/50 rounded-lg p-1">
+              <button 
+                onClick={() => setLocalCurrentRound(1)}
+                className={`px-4 py-1.5 rounded-md text-sm font-medium transition-colors ${currentRound === 1 ? 'bg-acm text-white' : 'text-muted-foreground hover:text-foreground'}`}
+              >
+                Round 1
+              </button>
+              <button 
+                onClick={() => setLocalCurrentRound(2)}
+                className={`px-4 py-1.5 rounded-md text-sm font-medium transition-colors ${currentRound === 2 ? 'bg-acm text-white' : 'text-muted-foreground hover:text-foreground'}`}
+              >
+                Round 2
+              </button>
+            </div>
+          )}
           
-          {profile?.role !== "domain_lead" && (
+          {!hideRoundControls && profile?.role !== "domain_lead" && (
             <select 
               value={domainFilter}
               onChange={(e) => setDomainFilter(e.target.value)}

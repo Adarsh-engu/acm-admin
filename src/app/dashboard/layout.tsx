@@ -15,9 +15,15 @@ export default async function DashboardLayout({
     redirect("/login");
   }
 
+  const { data: profile } = await supabase
+    .from("team_members")
+    .select("role")
+    .eq("id", user.id)
+    .single();
+
   return (
     <SidebarProvider>
-      <AppSidebar />
+      <AppSidebar role={profile?.role} />
       <main className="w-full h-screen overflow-y-auto bg-background flex flex-col relative">
         <header className="flex h-16 shrink-0 items-center gap-2 border-b border-border/50 px-6 backdrop-blur-md sticky top-0 z-20 bg-background/80">
           <SidebarTrigger />

@@ -16,12 +16,23 @@ import Link from "next/link"
 import Image from "next/image"
 
 const items = [
-  { title: "Applicants", url: "/", icon: FileText },
-  { title: "Team Directory", url: "/team", icon: Users },
-  { title: "Settings", url: "/settings", icon: Settings },
+  { title: "Applicants", url: "/dashboard", icon: FileText },
+  { title: "Recruitments", url: "/dashboard/recruitments", icon: Users },
+  { title: "Team Directory", url: "/dashboard/team", icon: Users },
+  { title: "Settings", url: "/dashboard/settings", icon: Settings },
 ]
 
-export function AppSidebar() {
+export function AppSidebar({ role }: { role?: string }) {
+  const visibleItems = items.filter(item => {
+    if (item.title === "Team Directory") {
+      return role === "central_admin"
+    }
+    if (item.title === "Recruitments") {
+      return role !== "domain_lead"
+    }
+    return true
+  })
+
   return (
     <Sidebar className="border-r border-border/50 bg-background">
       <SidebarContent>
@@ -33,7 +44,7 @@ export function AppSidebar() {
           <SidebarGroupLabel className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mt-4 mb-2 px-4">Dashboard</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {items.map((item) => (
+              {visibleItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton 
                     render={<Link href={item.url} />} 

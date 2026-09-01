@@ -51,3 +51,31 @@ export async function addTeamMember(formData: FormData) {
   revalidatePath("/team")
   return { success: true }
 }
+
+export async function deleteTeamMember(userId: string) {
+  const adminClient = createAdminClient()
+  
+  if (!userId) {
+    return { error: "User ID is required" }
+  }
+
+  // 1. Delete the Auth user in Supabase (this should cascade to team_members if foreign keys are set up, 
+  // but we can also manually delete from team_members just in case)
+  const { error: dbError } = await adminClient
+    .from("team_members")
+    .delete()
+    .eq("id", userId)
+
+  if (dbError) {
+    return { error: dbError.message }
+  }
+
+  const { error: authError } = await adminClient.auth.admin.deleteUser(userId)
+
+  if (authError) {
+    return { error: authError.message }
+  }
+
+  revalidatePath("/team")
+  return { success: true }
+}

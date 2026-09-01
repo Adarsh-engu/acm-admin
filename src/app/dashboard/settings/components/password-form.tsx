@@ -18,7 +18,8 @@ export function PasswordForm() {
     setError(null)
     setSuccess(false)
 
-    const formData = new FormData(e.currentTarget)
+    const form = e.currentTarget
+    const formData = new FormData(form)
     const res = await updatePassword(formData)
 
     setLoading(false)
@@ -26,7 +27,7 @@ export function PasswordForm() {
       setError(res.error)
     } else {
       setSuccess(true)
-      e.currentTarget.reset()
+      form.reset()
     }
   }
 
