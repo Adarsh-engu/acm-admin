@@ -26,8 +26,18 @@ export default async function ApplicantsPage() {
 
   if (profile?.role === "domain_lead" && profile?.domain) {
     const domain = profile.domain
-    const domainTeam = `${domain} Team`
-    query = query.or(`first_priority.eq."${domain}",second_priority.eq."${domain}",first_priority.eq."${domainTeam}",second_priority.eq."${domainTeam}"`)
+    let filters = []
+    
+    if (domain === "Public Relations") {
+      filters.push('first_priority.eq."PR (Public Relations) Team"', 'second_priority.eq."PR (Public Relations) Team"', 'first_priority.eq."Public Relations"', 'second_priority.eq."Public Relations"')
+    } else if (domain === "Graphic" || domain === "Graphic Lead") {
+      filters.push('first_priority.eq."Graphic Team"', 'second_priority.eq."Graphic Team"', 'first_priority.eq."Graphic Lead"', 'second_priority.eq."Graphic Lead"', 'first_priority.eq."Graphic"', 'second_priority.eq."Graphic"')
+    } else {
+      const domainTeam = `${domain} Team`
+      filters.push(`first_priority.eq."${domain}"`, `second_priority.eq."${domain}"`, `first_priority.eq."${domainTeam}"`, `second_priority.eq."${domainTeam}"`)
+    }
+    
+    query = query.or(filters.join(','))
   }
 
   const { data, error } = await query

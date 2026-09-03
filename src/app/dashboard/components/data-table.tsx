@@ -46,6 +46,22 @@ interface DataTableProps {
   hideRoundControls?: boolean
 }
 
+const isApplicantInDomain = (applicant: any, domain: string) => {
+  const p1 = applicant.first_priority
+  const p2 = applicant.second_priority
+  if (domain === "Public Relations") return p1 === "PR (Public Relations) Team" || p2 === "PR (Public Relations) Team" || p1 === "Public Relations" || p2 === "Public Relations"
+  if (domain === "Graphic" || domain === "Graphic Lead") return p1 === "Graphic Team" || p2 === "Graphic Team" || p1 === "Graphic Lead" || p2 === "Graphic Lead" || p1 === "Graphic" || p2 === "Graphic"
+  return p1 === domain || p2 === domain || p1 === `${domain} Team` || p2 === `${domain} Team`
+}
+
+const isFirstPriority = (applicant: any, domain: string) => {
+  const p1 = applicant.first_priority
+  if (domain === "Public Relations") return p1 === "PR (Public Relations) Team" || p1 === "Public Relations"
+  if (domain === "Graphic" || domain === "Graphic Lead") return p1 === "Graphic Team" || p1 === "Graphic Lead" || p1 === "Graphic"
+  return p1 === domain || p1 === `${domain} Team`
+}
+
+
 export function DataTable({
   columns,
   data,
@@ -83,7 +99,7 @@ export function DataTable({
       const isFinalized = currentRound === 1 ? profile.round_1_finalized : profile.round_2_finalized
       if (isFinalized) {
         result = result.filter(a => {
-          const isP1 = a.first_priority === profile.domain || a.first_priority === `${profile.domain} Team`
+          const isP1 = isFirstPriority(a, profile.domain)
           const status = currentRound === 1 
             ? (isP1 ? a.r1_status_1 : a.r1_status_2)
             : (isP1 ? a.r2_status_1 : a.r2_status_2)
@@ -93,7 +109,7 @@ export function DataTable({
     } else {
       // Admin/Core Team domain filter
       if (domainFilter !== "All Domains") {
-        result = result.filter(a => a.first_priority === domainFilter || a.second_priority === domainFilter || a.first_priority === `${domainFilter} Team` || a.second_priority === `${domainFilter} Team`)
+        result = result.filter(a => isApplicantInDomain(a, domainFilter))
       }
     }
 
@@ -205,7 +221,7 @@ export function DataTable({
               <option value="Technical">Technical</option>
               <option value="Public Relations">Public Relations</option>
               <option value="Sponsorship">Sponsorship</option>
-              <option value="Graphic Lead">Graphic</option>
+              <option value="Graphic">Graphic</option>
               <option value="Logistics">Logistics</option>
               <option value="Documentation">Documentation</option>
             </select>
@@ -267,7 +283,7 @@ export function DataTable({
                   key={row.id}
                   className={`border-border/50 hover:bg-white/5 cursor-pointer ${
                     profile?.role === "domain_lead" 
-                      ? (((row.original as Applicant).first_priority === profile?.domain || (row.original as Applicant).first_priority === `${profile?.domain} Team`) ? 'bg-acm/5 border-l-2 border-l-acm' : 'bg-muted/30 border-l-2 border-l-muted-foreground')
+                      ? (isFirstPriority(row.original, profile?.domain) ? 'bg-acm/5 border-l-2 border-l-acm' : 'bg-muted/30 border-l-2 border-l-muted-foreground')
                       : ''
                   }`}
                   onClick={(e) => {

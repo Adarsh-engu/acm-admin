@@ -12,10 +12,25 @@ const DOMAINS = [
   "Technical",
   "Public Relations",
   "Sponsorship",
-  "Graphic Lead",
+  "Graphic",
   "Logistics",
   "Documentation"
 ]
+
+const isApplicantInDomain = (applicant: any, domain: string) => {
+  const p1 = applicant.first_priority
+  const p2 = applicant.second_priority
+  if (domain === "Public Relations") return p1 === "PR (Public Relations) Team" || p2 === "PR (Public Relations) Team" || p1 === "Public Relations" || p2 === "Public Relations"
+  if (domain === "Graphic" || domain === "Graphic Lead") return p1 === "Graphic Team" || p2 === "Graphic Team" || p1 === "Graphic Lead" || p2 === "Graphic Lead" || p1 === "Graphic" || p2 === "Graphic"
+  return p1 === domain || p2 === domain || p1 === `${domain} Team` || p2 === `${domain} Team`
+}
+
+const isFirstPriority = (applicant: any, domain: string) => {
+  const p1 = applicant.first_priority
+  if (domain === "Public Relations") return p1 === "PR (Public Relations) Team" || p1 === "Public Relations"
+  if (domain === "Graphic" || domain === "Graphic Lead") return p1 === "Graphic Team" || p1 === "Graphic Lead" || p1 === "Graphic"
+  return p1 === domain || p1 === `${domain} Team`
+}
 
 import {
   Dialog,
@@ -72,12 +87,8 @@ export function RecruitmentsTabs({
     const domainLeadRecord = domainLeads.find(l => l.domain === domain)
     const isDomainFinalized = round === 1 ? domainLeadRecord?.round_1_finalized : domainLeadRecord?.round_2_finalized
 
-    // Get applicants who applied to this domain (priority 1 or 2, including " Team" suffix)
-    const dTeam = `${domain} Team`
-    const applied = recruitments.filter(r => 
-      r.first_priority === domain || r.second_priority === domain ||
-      r.first_priority === dTeam || r.second_priority === dTeam
-    )
+    // Get applicants who applied to this domain (priority 1 or 2)
+    const applied = recruitments.filter(r => isApplicantInDomain(r, domain))
 
     // Calculate pushed, rejected, pending based on round
     let pushed = 0
@@ -86,7 +97,7 @@ export function RecruitmentsTabs({
     
     if (round === 1) {
       applied.forEach(r => {
-        const isP1 = r.first_priority === domain || r.first_priority === dTeam
+        const isP1 = isFirstPriority(r, domain)
         const status = isP1 ? r.r1_status_1 : r.r1_status_2
         if (status === "Approved") pushed++
         else if (status === "Rejected") rejected++
@@ -94,7 +105,7 @@ export function RecruitmentsTabs({
       })
     } else {
       applied.forEach(r => {
-        const isP1 = r.first_priority === domain || r.first_priority === dTeam
+        const isP1 = isFirstPriority(r, domain)
         const status = isP1 ? r.r2_status_1 : r.r2_status_2
         if (status === "Approved") pushed++
         else if (status === "Rejected") rejected++
@@ -158,10 +169,7 @@ export function RecruitmentsTabs({
   }
 
   // Get candidates for the selected domain popup
-  const selectedDomainCandidates = selectedDomain ? recruitments.filter(r => 
-    r.first_priority === selectedDomain || r.second_priority === selectedDomain ||
-    r.first_priority === `${selectedDomain} Team` || r.second_priority === `${selectedDomain} Team`
-  ) : []
+  const selectedDomainCandidates = selectedDomain ? recruitments.filter(r => isApplicantInDomain(r, selectedDomain)) : []
 
   // Check if ALL visible domains have finalized (for Central Admin global finalize button)
   const allDomainsFinalizedR1 = visibleDomains.every(d => domainLeads.find(l => l.domain === d)?.round_1_finalized)
@@ -309,13 +317,9 @@ export function RecruitmentsTabs({
               
               <div className="mt-8 grid grid-cols-2 md:grid-cols-4 gap-6 w-full max-w-4xl text-left">
                 {visibleDomains.map(domain => {
-                  const dTeam = `${domain} Team`
-                  const applied = recruitments.filter(r => 
-                    r.first_priority === domain || r.second_priority === domain ||
-                    r.first_priority === dTeam || r.second_priority === dTeam
-                  )
+                  const applied = recruitments.filter(r => isApplicantInDomain(r, domain))
                   const shortlisted = applied.filter(r => {
-                    const isP1 = r.first_priority === domain || r.first_priority === dTeam
+                    const isP1 = isFirstPriority(r, domain)
                     return isP1 ? r.r2_status_1 === "Approved" : r.r2_status_2 === "Approved"
                   })
                   

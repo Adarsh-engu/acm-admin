@@ -36,6 +36,7 @@ export default function Slideshow() {
             src={IMAGES[currentIndex]}
             alt="ACM Event"
             fill
+            sizes="50vw"
             className="object-cover opacity-20"
             priority={currentIndex === 0}
           />
