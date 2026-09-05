@@ -11,7 +11,10 @@ export function DeleteMemberButton({ userId, username, currentUserId }: { userId
 
   const isSelf = userId === currentUserId
 
-  const handleDelete = async () => {
+  const handleDelete = async (e: React.MouseEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+
     if (isSelf) {
       alert("You cannot delete your own account.")
       return

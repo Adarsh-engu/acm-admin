@@ -26,6 +26,17 @@ export async function login(formData: FormData) {
     redirect("/login?message=Could not authenticate user");
   }
 
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) {
+      await supabase.from("login_logs").insert({ user_id: user.id });
+    }
+  } catch (e) {
+    console.error("Failed to log activity:", e);
+  }
+
+  console.log(`[AUTH] User logged in: ${formData.get("username")} at ${new Date().toISOString()}`);
+
   revalidatePath("/", "layout");
   redirect("/dashboard");
 }
