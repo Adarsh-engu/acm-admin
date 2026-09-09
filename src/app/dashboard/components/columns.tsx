@@ -32,6 +32,15 @@ export type Applicant = {
 
 export const columns: any[] = [
   {
+    id: "sno",
+    header: "S.No",
+    cell: ({ row }: any) => (
+      <span className="text-muted-foreground font-mono text-xs">
+        {typeof row.index === "number" ? row.index + 1 : "-"}
+      </span>
+    ),
+  },
+  {
     accessorKey: "full_name",
     header: "Full Name",
   },

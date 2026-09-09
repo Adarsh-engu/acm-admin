@@ -194,9 +194,12 @@ export function DataTable({
   } as any)
 
   const handleExport = () => {
-    const exportData = filteredData.map((applicant: any) => {
+    const exportData = filteredData.map((applicant: any, index: number) => {
       const { id, created_at, r1_status_1, r1_status_2, r2_status_1, r2_status_2, ...rest } = applicant
-      return rest
+      return {
+        "S.No": index + 1,
+        ...rest
+      }
     })
     const ws = XLSX.utils.json_to_sheet(exportData)
     const wb = XLSX.utils.book_new()
@@ -269,6 +272,10 @@ export function DataTable({
               <option key={year} value={year}>{year}</option>
             ))}
           </select>
+
+          <span className="text-xs font-medium px-3 py-2 rounded-lg bg-surface border border-border/50 text-muted-foreground whitespace-nowrap">
+            Total: {filteredData.length}
+          </span>
         </div>
 
         <div className="flex gap-3">
@@ -306,7 +313,7 @@ export function DataTable({
               <TableRow key={headerGroup.id} className="border-border/50 hover:bg-transparent">
                 {headerGroup.headers.map((header) => {
                   return (
-                    <TableHead key={header.id} className="text-foreground font-semibold">
+                    <TableHead key={header.id} className={`text-foreground font-semibold ${header.id === "sno" ? "w-16" : ""}`}>
                       {header.isPlaceholder
                         ? null
                         : flexRender(
@@ -336,7 +343,7 @@ export function DataTable({
                   }}
                 >
                   {row.getAllCells().map((cell: any) => (
-                    <TableCell key={cell.id}>
+                    <TableCell key={cell.id} className={cell.column.id === "sno" ? "w-16" : ""}>
                       {flexRender(cell.column.columnDef.cell, cell.getContext())}
                     </TableCell>
                   ))}
@@ -353,25 +360,39 @@ export function DataTable({
         </Table>
       </div>
 
-      <div className="flex items-center justify-end space-x-2 py-4">
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => table.previousPage()}
-          disabled={!table.getCanPreviousPage()}
-          className="border-border/50"
-        >
-          Previous
-        </Button>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => table.nextPage()}
-          disabled={!table.getCanNextPage()}
-          className="border-border/50"
-        >
-          Next
-        </Button>
+      <div className="flex items-center justify-between py-4">
+        <div className="text-sm text-muted-foreground">
+          Showing{" "}
+          <span className="font-medium text-foreground">
+            {filteredData.length === 0 ? 0 : pagination.pageIndex * pagination.pageSize + 1}
+          </span>{" "}
+          to{" "}
+          <span className="font-medium text-foreground">
+            {Math.min((pagination.pageIndex + 1) * pagination.pageSize, filteredData.length)}
+          </span>{" "}
+          of{" "}
+          <span className="font-medium text-foreground">{filteredData.length}</span> applicants
+        </div>
+        <div className="flex items-center space-x-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => table.previousPage()}
+            disabled={!table.getCanPreviousPage()}
+            className="border-border/50"
+          >
+            Previous
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => table.nextPage()}
+            disabled={!table.getCanNextPage()}
+            className="border-border/50"
+          >
+            Next
+          </Button>
+        </div>
       </div>
 
       <ApplicantModal 
