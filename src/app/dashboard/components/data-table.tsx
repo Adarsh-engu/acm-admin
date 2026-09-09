@@ -85,6 +85,18 @@ export function DataTable({
   const [finalizeError, setFinalizeError] = React.useState<string | null>(null)
 
   const [domainFilter, setDomainFilter] = React.useState<string>("All Domains")
+  const [yearFilter, setYearFilter] = React.useState<string>("All Years")
+
+  const availableYears = React.useMemo(() => {
+    const yearSet = new Set<string>(["2nd Year", "3rd Year"])
+    data.forEach((applicant: any) => {
+      if (applicant?.year !== undefined && applicant?.year !== null) {
+        const y = String(applicant.year).trim()
+        if (y) yearSet.add(y)
+      }
+    })
+    return Array.from(yearSet).sort((a, b) => a.localeCompare(b, undefined, { numeric: true }))
+  }, [data])
 
   // Filter data for Domain Leads if round is finalized (hide rejected)
   // Also for Round 2, only show applicants approved in Round 1
@@ -113,8 +125,16 @@ export function DataTable({
       }
     }
 
+    // Filter by Year
+    if (yearFilter !== "All Years") {
+      result = result.filter(a => {
+        if (a?.year === undefined || a?.year === null) return false
+        return String(a.year).trim().toLowerCase() === yearFilter.toLowerCase()
+      })
+    }
+
     return result
-  }, [data, currentRound, profile, domainFilter])
+  }, [data, currentRound, profile, domainFilter, yearFilter])
 
   const updateLocalChange = (applicantId: string, field: string, value: string) => {
     setLocalChanges(prev => ({
@@ -195,13 +215,19 @@ export function DataTable({
           {!hideRoundControls && (
             <div className="flex bg-surface border border-border/50 rounded-lg p-1">
               <button 
-                onClick={() => setLocalCurrentRound(1)}
+                onClick={() => {
+                  setLocalCurrentRound(1)
+                  setPagination(prev => ({ ...prev, pageIndex: 0 }))
+                }}
                 className={`px-4 py-1.5 rounded-md text-sm font-medium transition-colors ${currentRound === 1 ? 'bg-acm text-white' : 'text-muted-foreground hover:text-foreground'}`}
               >
                 Round 1
               </button>
               <button 
-                onClick={() => setLocalCurrentRound(2)}
+                onClick={() => {
+                  setLocalCurrentRound(2)
+                  setPagination(prev => ({ ...prev, pageIndex: 0 }))
+                }}
                 className={`px-4 py-1.5 rounded-md text-sm font-medium transition-colors ${currentRound === 2 ? 'bg-acm text-white' : 'text-muted-foreground hover:text-foreground'}`}
               >
                 Round 2
@@ -212,7 +238,10 @@ export function DataTable({
           {!hideRoundControls && profile?.role !== "domain_lead" && (
             <select 
               value={domainFilter}
-              onChange={(e) => setDomainFilter(e.target.value)}
+              onChange={(e) => {
+                setDomainFilter(e.target.value)
+                setPagination(prev => ({ ...prev, pageIndex: 0 }))
+              }}
               className="bg-surface border border-border/50 rounded-lg px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-acm/50"
             >
               <option value="All Domains">All Domains</option>
@@ -226,6 +255,20 @@ export function DataTable({
               <option value="Documentation">Documentation</option>
             </select>
           )}
+
+          <select 
+            value={yearFilter}
+            onChange={(e) => {
+              setYearFilter(e.target.value)
+              setPagination(prev => ({ ...prev, pageIndex: 0 }))
+            }}
+            className="bg-surface border border-border/50 rounded-lg px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-acm/50"
+          >
+            <option value="All Years">All Years</option>
+            {availableYears.map(year => (
+              <option key={year} value={year}>{year}</option>
+            ))}
+          </select>
         </div>
 
         <div className="flex gap-3">
