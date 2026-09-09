@@ -360,39 +360,25 @@ export function DataTable({
         </Table>
       </div>
 
-      <div className="flex items-center justify-between py-4">
-        <div className="text-sm text-muted-foreground">
-          Showing{" "}
-          <span className="font-medium text-foreground">
-            {filteredData.length === 0 ? 0 : pagination.pageIndex * pagination.pageSize + 1}
-          </span>{" "}
-          to{" "}
-          <span className="font-medium text-foreground">
-            {Math.min((pagination.pageIndex + 1) * pagination.pageSize, filteredData.length)}
-          </span>{" "}
-          of{" "}
-          <span className="font-medium text-foreground">{filteredData.length}</span> applicants
-        </div>
-        <div className="flex items-center space-x-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => table.previousPage()}
-            disabled={!table.getCanPreviousPage()}
-            className="border-border/50"
-          >
-            Previous
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => table.nextPage()}
-            disabled={!table.getCanNextPage()}
-            className="border-border/50"
-          >
-            Next
-          </Button>
-        </div>
+      <div className="flex items-center justify-end space-x-2 py-4">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => table.previousPage()}
+          disabled={!table.getCanPreviousPage()}
+          className="border-border/50"
+        >
+          Previous
+        </Button>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => table.nextPage()}
+          disabled={!table.getCanNextPage()}
+          className="border-border/50"
+        >
+          Next
+        </Button>
       </div>
 
       <ApplicantModal 
