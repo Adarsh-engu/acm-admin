@@ -61,6 +61,56 @@ const isFirstPriority = (applicant: any, domain: string) => {
   return p1 === domain || p1 === `${domain} Team`
 }
 
+const isSecondPriority = (applicant: any, domain: string) => {
+  const p2 = applicant.second_priority
+  if (domain === "Public Relations") return p2 === "PR (Public Relations) Team" || p2 === "Public Relations"
+  if (domain === "Graphic" || domain === "Graphic Lead") return p2 === "Graphic Team" || p2 === "Graphic Lead" || p2 === "Graphic"
+  return p2 === domain || p2 === `${domain} Team`
+}
+
+const getApplicantStatus = (
+  applicant: any,
+  currentRound: 1 | 2,
+  profile: any,
+  localChanges: Record<string, Record<string, string>> = {}
+): "Approved" | "Rejected" | "Pending" => {
+  const r1s1 = localChanges[applicant.id]?.r1_status_1 || applicant.r1_status_1 || "Pending"
+  const r1s2 = localChanges[applicant.id]?.r1_status_2 || applicant.r1_status_2 || "Pending"
+  const r2s1 = localChanges[applicant.id]?.r2_status_1 || applicant.r2_status_1 || "Pending"
+  const r2s2 = localChanges[applicant.id]?.r2_status_2 || applicant.r2_status_2 || "Pending"
+
+  if (profile?.role === "domain_lead") {
+    const domain = profile.domain
+    const isP1 = isFirstPriority(applicant, domain)
+    const isP2 = isSecondPriority(applicant, domain)
+
+    let status = "Pending"
+    if (currentRound === 1) {
+      if (isP1) status = r1s1
+      else if (isP2) status = r1s2
+    } else {
+      if (isP1) status = r2s1
+      else if (isP2) status = r2s2
+    }
+
+    if (status === "Approved") return "Approved"
+    if (status === "Rejected") return "Rejected"
+    return "Pending"
+  }
+
+  // For Admin / Core Team:
+  const s1 = currentRound === 1 ? r1s1 : r2s1
+  const s2 = currentRound === 1 ? r1s2 : r2s2
+
+  if (s1 === "Approved" || s2 === "Approved") {
+    return "Approved"
+  }
+  if (s1 === "Rejected" && s2 === "Rejected") {
+    return "Rejected"
+  }
+  return "Pending"
+}
+
 
 export function DataTable({
   columns,
@@ -86,6 +136,7 @@ export function DataTable({
 
   const [domainFilter, setDomainFilter] = React.useState<string>("All Domains")
   const [yearFilter, setYearFilter] = React.useState<string>("All Years")
+  const [statusFilter, setStatusFilter] = React.useState<string>("All Status")
 
   const availableYears = React.useMemo(() => {
     const yearSet = new Set<string>(["2nd Year", "3rd Year"])
@@ -98,9 +149,8 @@ export function DataTable({
     return Array.from(yearSet).sort((a, b) => a.localeCompare(b, undefined, { numeric: true }))
   }, [data])
 
-  // Filter data for Domain Leads if round is finalized (hide rejected)
-  // Also for Round 2, only show applicants approved in Round 1
-  const filteredData = React.useMemo(() => {
+  // Base filtered data by round, domain lead finalize, domain filter, and year
+  const baseData = React.useMemo(() => {
     let result = [...data] as any[]
 
     if (currentRound === 2) {
@@ -135,6 +185,36 @@ export function DataTable({
 
     return result
   }, [data, currentRound, profile, domainFilter, yearFilter])
+
+  // Status counts based on baseData
+  const statusCounts = React.useMemo(() => {
+    let approved = 0
+    let rejected = 0
+    let pending = 0
+
+    baseData.forEach(applicant => {
+      const status = getApplicantStatus(applicant, currentRound, profile, localChanges)
+      if (status === "Approved") approved++
+      else if (status === "Rejected") rejected++
+      else pending++
+    })
+
+    return {
+      all: baseData.length,
+      approved,
+      rejected,
+      pending,
+    }
+  }, [baseData, currentRound, profile, localChanges])
+
+  // Filter by selected Status
+  const filteredData = React.useMemo(() => {
+    if (statusFilter === "All Status") return baseData
+    return baseData.filter(applicant => {
+      const status = getApplicantStatus(applicant, currentRound, profile, localChanges)
+      return status === statusFilter
+    })
+  }, [baseData, statusFilter, currentRound, profile, localChanges])
 
   const updateLocalChange = (applicantId: string, field: string, value: string) => {
     setLocalChanges(prev => ({
@@ -271,6 +351,20 @@ export function DataTable({
             {availableYears.map(year => (
               <option key={year} value={year}>{year}</option>
             ))}
+          </select>
+
+          <select 
+            value={statusFilter}
+            onChange={(e) => {
+              setStatusFilter(e.target.value)
+              setPagination(prev => ({ ...prev, pageIndex: 0 }))
+            }}
+            className="bg-surface border border-border/50 rounded-lg px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-acm/50"
+          >
+            <option value="All Status">All Status ({statusCounts.all})</option>
+            <option value="Approved">Approved ({statusCounts.approved})</option>
+            <option value="Rejected">Rejected ({statusCounts.rejected})</option>
+            <option value="Pending">Pending ({statusCounts.pending})</option>
           </select>
 
           <span className="text-xs font-medium px-3 py-2 rounded-lg bg-surface border border-border/50 text-muted-foreground whitespace-nowrap">
