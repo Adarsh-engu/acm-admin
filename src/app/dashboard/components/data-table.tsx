@@ -25,7 +25,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import * as XLSX from "xlsx"
 import { ApplicantModal } from "./applicant-modal"
-import { Applicant } from "./columns"
+import { Applicant, getApplicantDisplayStatus, isFirstPriority, isSecondPriority } from "./columns"
 import { saveApplicantStatuses, finalizeRound } from "../actions"
 import { Check, Save, Lock } from "lucide-react"
 
@@ -44,6 +44,7 @@ interface DataTableProps {
   profile?: any
   overrideRound?: 1 | 2
   hideRoundControls?: boolean
+  selectedDomain?: string | null
 }
 
 const isApplicantInDomain = (applicant: any, domain: string) => {
@@ -54,63 +55,6 @@ const isApplicantInDomain = (applicant: any, domain: string) => {
   return p1 === domain || p2 === domain || p1 === `${domain} Team` || p2 === `${domain} Team`
 }
 
-const isFirstPriority = (applicant: any, domain: string) => {
-  const p1 = applicant.first_priority
-  if (domain === "Public Relations") return p1 === "PR (Public Relations) Team" || p1 === "Public Relations"
-  if (domain === "Graphic" || domain === "Graphic Lead") return p1 === "Graphic Team" || p1 === "Graphic Lead" || p1 === "Graphic"
-  return p1 === domain || p1 === `${domain} Team`
-}
-
-const isSecondPriority = (applicant: any, domain: string) => {
-  const p2 = applicant.second_priority
-  if (domain === "Public Relations") return p2 === "PR (Public Relations) Team" || p2 === "Public Relations"
-  if (domain === "Graphic" || domain === "Graphic Lead") return p2 === "Graphic Team" || p2 === "Graphic Lead" || p2 === "Graphic"
-  return p2 === domain || p2 === `${domain} Team`
-}
-
-const getApplicantStatus = (
-  applicant: any,
-  currentRound: 1 | 2,
-  profile: any,
-  localChanges: Record<string, Record<string, string>> = {}
-): "Approved" | "Rejected" | "Pending" => {
-  const r1s1 = localChanges[applicant.id]?.r1_status_1 || applicant.r1_status_1 || "Pending"
-  const r1s2 = localChanges[applicant.id]?.r1_status_2 || applicant.r1_status_2 || "Pending"
-  const r2s1 = localChanges[applicant.id]?.r2_status_1 || applicant.r2_status_1 || "Pending"
-  const r2s2 = localChanges[applicant.id]?.r2_status_2 || applicant.r2_status_2 || "Pending"
-
-  if (profile?.role === "domain_lead") {
-    const domain = profile.domain
-    const isP1 = isFirstPriority(applicant, domain)
-    const isP2 = isSecondPriority(applicant, domain)
-
-    let status = "Pending"
-    if (currentRound === 1) {
-      if (isP1) status = r1s1
-      else if (isP2) status = r1s2
-    } else {
-      if (isP1) status = r2s1
-      else if (isP2) status = r2s2
-    }
-
-    if (status === "Approved") return "Approved"
-    if (status === "Rejected") return "Rejected"
-    return "Pending"
-  }
-
-  // For Admin / Core Team:
-  const s1 = currentRound === 1 ? r1s1 : r2s1
-  const s2 = currentRound === 1 ? r1s2 : r2s2
-
-  if (s1 === "Approved" || s2 === "Approved") {
-    return "Approved"
-  }
-  if (s1 === "Rejected" && s2 === "Rejected") {
-    return "Rejected"
-  }
-  return "Pending"
-}
-
 
 export function DataTable({
   columns,
@@ -118,6 +62,7 @@ export function DataTable({
   profile,
   overrideRound,
   hideRoundControls,
+  selectedDomain,
 }: DataTableProps) {
   const router = useRouter()
   const [pagination, setPagination] = React.useState({ pageIndex: 0, pageSize: 15 })
@@ -137,6 +82,8 @@ export function DataTable({
   const [domainFilter, setDomainFilter] = React.useState<string>("All Domains")
   const [yearFilter, setYearFilter] = React.useState<string>("All Years")
   const [statusFilter, setStatusFilter] = React.useState<string>("All Status")
+
+  const activeDomain = selectedDomain || (domainFilter !== "All Domains" ? domainFilter : null)
 
   const availableYears = React.useMemo(() => {
     const yearSet = new Set<string>(["2nd Year", "3rd Year"])
@@ -170,8 +117,8 @@ export function DataTable({
       }
     } else {
       // Admin/Core Team domain filter
-      if (domainFilter !== "All Domains") {
-        result = result.filter(a => isApplicantInDomain(a, domainFilter))
+      if (activeDomain) {
+        result = result.filter(a => isApplicantInDomain(a, activeDomain))
       }
     }
 
@@ -184,7 +131,7 @@ export function DataTable({
     }
 
     return result
-  }, [data, currentRound, profile, domainFilter, yearFilter])
+  }, [data, currentRound, profile, activeDomain, yearFilter])
 
   // Status counts based on baseData
   const statusCounts = React.useMemo(() => {
@@ -193,7 +140,7 @@ export function DataTable({
     let pending = 0
 
     baseData.forEach(applicant => {
-      const status = getApplicantStatus(applicant, currentRound, profile, localChanges)
+      const { status } = getApplicantDisplayStatus(applicant, currentRound, profile, activeDomain, localChanges)
       if (status === "Approved") approved++
       else if (status === "Rejected") rejected++
       else pending++
@@ -205,16 +152,16 @@ export function DataTable({
       rejected,
       pending,
     }
-  }, [baseData, currentRound, profile, localChanges])
+  }, [baseData, currentRound, profile, activeDomain, localChanges])
 
   // Filter by selected Status
   const filteredData = React.useMemo(() => {
     if (statusFilter === "All Status") return baseData
     return baseData.filter(applicant => {
-      const status = getApplicantStatus(applicant, currentRound, profile, localChanges)
+      const { status } = getApplicantDisplayStatus(applicant, currentRound, profile, activeDomain, localChanges)
       return status === statusFilter
     })
-  }, [baseData, statusFilter, currentRound, profile, localChanges])
+  }, [baseData, statusFilter, currentRound, profile, activeDomain, localChanges])
 
   const updateLocalChange = (applicantId: string, field: string, value: string) => {
     setLocalChanges(prev => ({
@@ -269,7 +216,8 @@ export function DataTable({
       profile,
       currentRound,
       localChanges,
-      updateLocalChange
+      updateLocalChange,
+      domainFilter: activeDomain,
     }
   } as any)
 

@@ -134,7 +134,7 @@ export function RecruitmentsTabs({
           )}
         </div>
         
-        <div className={`grid gap-4 mt-2 ${isDomainLead ? 'grid-cols-4' : 'grid-cols-2'}`}>
+        <div className="grid gap-4 mt-2 grid-cols-4">
           <div className="flex flex-col">
             <span className="text-2xl font-bold text-foreground">{applied.length}</span>
             <span className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">Applied</span>
@@ -145,18 +145,14 @@ export function RecruitmentsTabs({
               {round === 1 ? "Pushed" : "Selected"}
             </span>
           </div>
-          {isDomainLead && (
-            <>
-              <div className="flex flex-col">
-                <span className="text-2xl font-bold text-destructive">{rejected}</span>
-                <span className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">Rejected</span>
-              </div>
-              <div className="flex flex-col">
-                <span className="text-2xl font-bold text-amber-500">{pending}</span>
-                <span className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">Pending</span>
-              </div>
-            </>
-          )}
+          <div className="flex flex-col">
+            <span className="text-2xl font-bold text-destructive">{rejected}</span>
+            <span className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">Rejected</span>
+          </div>
+          <div className="flex flex-col">
+            <span className="text-2xl font-bold text-amber-500">{pending}</span>
+            <span className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">Pending</span>
+          </div>
         </div>
         {!isDomainLead && (
           <div className="text-xs text-muted-foreground mt-2 flex items-center justify-between">
@@ -352,6 +348,7 @@ export function RecruitmentsTabs({
               profile={{ ...profile, role: "core_team" }} // Pass as core team so they get read-only view
               overrideRound={activeTab === 1 ? 1 : 2}
               hideRoundControls={true}
+              selectedDomain={selectedDomain}
             />
           </div>
         </DialogContent>
