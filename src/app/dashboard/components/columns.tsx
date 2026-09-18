@@ -30,6 +30,20 @@ export type Applicant = {
   r2_status_2: string
 }
 
+const isFirstPriority = (applicant: any, domain: string) => {
+  const p1 = applicant.first_priority
+  if (domain === "Public Relations") return p1 === "PR (Public Relations) Team" || p1 === "Public Relations"
+  if (domain === "Graphic" || domain === "Graphic Lead") return p1 === "Graphic Team" || p1 === "Graphic Lead" || p1 === "Graphic"
+  return p1 === domain || p1 === `${domain} Team`
+}
+
+const isSecondPriority = (applicant: any, domain: string) => {
+  const p2 = applicant.second_priority
+  if (domain === "Public Relations") return p2 === "PR (Public Relations) Team" || p2 === "Public Relations"
+  if (domain === "Graphic" || domain === "Graphic Lead") return p2 === "Graphic Team" || p2 === "Graphic Lead" || p2 === "Graphic"
+  return p2 === domain || p2 === `${domain} Team`
+}
+
 export const columns: any[] = [
   {
     accessorKey: "full_name",
@@ -77,8 +91,8 @@ export const columns: any[] = [
 
       if (profile?.role === "domain_lead") {
         const domain = profile.domain
-        const isPriority1 = applicant.first_priority === domain || applicant.first_priority === `${domain} Team`
-        const isPriority2 = applicant.second_priority === domain || applicant.second_priority === `${domain} Team`
+        const isPriority1 = isFirstPriority(applicant, domain)
+        const isPriority2 = isSecondPriority(applicant, domain)
         
         let status = "Pending"
         if (currentRound === 1) {
@@ -131,8 +145,8 @@ export const columns: any[] = [
       if (isFinalized) return null // Hide actions if round is finalized
 
       const domain = profile.domain
-      const isPriority1 = applicant.first_priority === domain || applicant.first_priority === `${domain} Team`
-      const isPriority2 = applicant.second_priority === domain || applicant.second_priority === `${domain} Team`
+      const isPriority1 = isFirstPriority(applicant, domain)
+      const isPriority2 = isSecondPriority(applicant, domain)
 
       if (!isPriority1 && !isPriority2) return null
 
