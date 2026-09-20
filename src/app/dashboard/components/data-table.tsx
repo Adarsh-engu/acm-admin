@@ -52,6 +52,7 @@ const isApplicantInDomain = (applicant: any, domain: string) => {
   const p2 = applicant.second_priority
   if (domain === "Public Relations") return p1 === "PR (Public Relations) Team" || p2 === "PR (Public Relations) Team" || p1 === "Public Relations" || p2 === "Public Relations"
   if (domain === "Graphic" || domain === "Graphic Lead") return p1 === "Graphic Team" || p2 === "Graphic Team" || p1 === "Graphic Lead" || p2 === "Graphic Lead" || p1 === "Graphic" || p2 === "Graphic"
+  if (domain === "Arts") return p1 === "ARTS Team" || p2 === "ARTS Team" || p1 === "Arts" || p2 === "Arts"
   return p1 === domain || p2 === domain || p1 === `${domain} Team` || p2 === `${domain} Team`
 }
 
@@ -301,6 +302,7 @@ export function DataTable({
               <option value="Graphic">Graphic</option>
               <option value="Logistics">Logistics</option>
               <option value="Documentation">Documentation</option>
+              <option value="Arts">Arts</option>
             </select>
           )}
 

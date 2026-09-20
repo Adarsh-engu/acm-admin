@@ -120,6 +120,7 @@ export function AddMemberDialog({ currentProfile }: { currentProfile?: any }) {
                   <SelectItem value="Graphic">Graphic</SelectItem>
                   <SelectItem value="Logistics">Logistics</SelectItem>
                   <SelectItem value="Documentation">Documentation</SelectItem>
+                  <SelectItem value="Arts">Arts</SelectItem>
                 </SelectContent>
               </Select>
             </div>
