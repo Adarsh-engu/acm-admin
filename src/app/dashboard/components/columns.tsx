@@ -30,18 +30,107 @@ export type Applicant = {
   r2_status_2: string
 }
 
-const isFirstPriority = (applicant: any, domain: string) => {
+export const isFirstPriority = (applicant: any, domain: string) => {
   const p1 = applicant.first_priority
   if (domain === "Public Relations") return p1 === "PR (Public Relations) Team" || p1 === "Public Relations"
   if (domain === "Graphic" || domain === "Graphic Lead") return p1 === "Graphic Team" || p1 === "Graphic Lead" || p1 === "Graphic"
   return p1 === domain || p1 === `${domain} Team`
 }
 
-const isSecondPriority = (applicant: any, domain: string) => {
+export const isSecondPriority = (applicant: any, domain: string) => {
   const p2 = applicant.second_priority
   if (domain === "Public Relations") return p2 === "PR (Public Relations) Team" || p2 === "Public Relations"
   if (domain === "Graphic" || domain === "Graphic Lead") return p2 === "Graphic Team" || p2 === "Graphic Lead" || p2 === "Graphic"
   return p2 === domain || p2 === `${domain} Team`
+}
+
+export const hasValidSecondPriority = (applicant: any) => {
+  if (!applicant.second_priority) return false
+  const p1 = String(applicant.first_priority || "").trim().toLowerCase()
+  const p2 = String(applicant.second_priority).trim().toLowerCase()
+  if (!p2 || p2 === "none" || p2 === "null" || p2 === "undefined" || p2 === p1) return false
+  return true
+}
+
+export const getDomainSpecificStatus = (
+  applicant: any,
+  domain: string,
+  currentRound: 1 | 2,
+  localChanges: Record<string, Record<string, string>> = {}
+): "Approved" | "Rejected" | "Pending" | null => {
+  const isP1 = isFirstPriority(applicant, domain)
+  const isP2 = isSecondPriority(applicant, domain)
+  if (!isP1 && !isP2) return null
+
+  const r1s1 = localChanges[applicant.id]?.r1_status_1 || applicant.r1_status_1 || "Pending"
+  const r1s2 = localChanges[applicant.id]?.r1_status_2 || applicant.r1_status_2 || "Pending"
+  const r2s1 = localChanges[applicant.id]?.r2_status_1 || applicant.r2_status_1 || "Pending"
+  const r2s2 = localChanges[applicant.id]?.r2_status_2 || applicant.r2_status_2 || "Pending"
+
+  let status = "Pending"
+  if (currentRound === 1) {
+    status = isP1 ? r1s1 : r1s2
+  } else {
+    status = isP1 ? r2s1 : r2s2
+  }
+
+  if (status === "Approved") return "Approved"
+  if (status === "Rejected") return "Rejected"
+  return "Pending"
+}
+
+export const getOverallStatus = (
+  applicant: any,
+  currentRound: 1 | 2,
+  localChanges: Record<string, Record<string, string>> = {}
+): "Approved" | "Rejected" | "Pending" => {
+  const r1s1 = localChanges[applicant.id]?.r1_status_1 || applicant.r1_status_1 || "Pending"
+  const r1s2 = localChanges[applicant.id]?.r1_status_2 || applicant.r1_status_2 || "Pending"
+  const r2s1 = localChanges[applicant.id]?.r2_status_1 || applicant.r2_status_1 || "Pending"
+  const r2s2 = localChanges[applicant.id]?.r2_status_2 || applicant.r2_status_2 || "Pending"
+
+  const s1 = currentRound === 1 ? r1s1 : r2s1
+  const s2 = currentRound === 1 ? r1s2 : r2s2
+  const hasP2 = hasValidSecondPriority(applicant)
+
+  // 1. If any one of the lead approves it then directly show as approved
+  if (s1 === "Approved" || (hasP2 && s2 === "Approved")) {
+    return "Approved"
+  }
+
+  // 2. If both leads reject them (or if only 1 priority and that lead rejected them)
+  if (s1 === "Rejected" && (!hasP2 || s2 === "Rejected")) {
+    return "Rejected"
+  }
+
+  // 3. Otherwise (e.g. one rejected and other pending, or both pending)
+  return "Pending"
+}
+
+export const getApplicantDisplayStatus = (
+  applicant: any,
+  currentRound: 1 | 2,
+  profile: any,
+  domainFilter?: string | null,
+  localChanges: Record<string, Record<string, string>> = {}
+): { status: "Approved" | "Rejected" | "Pending"; label: string; variant: "default" | "destructive" | "secondary" } => {
+  const activeDomain = profile?.role === "domain_lead" ? profile.domain : (domainFilter && domainFilter !== "All Domains" ? domainFilter : null)
+
+  if (activeDomain) {
+    const domainStatus = getDomainSpecificStatus(applicant, activeDomain, currentRound, localChanges) || "Pending"
+    return {
+      status: domainStatus,
+      label: domainStatus,
+      variant: domainStatus === "Approved" ? "default" : (domainStatus === "Rejected" ? "destructive" : "secondary")
+    }
+  }
+
+  const overall = getOverallStatus(applicant, currentRound, localChanges)
+  return {
+    status: overall,
+    label: overall === "Approved" ? "Approved" : (overall === "Rejected" ? "Rejected" : "Pending Review"),
+    variant: overall === "Approved" ? "default" : (overall === "Rejected" ? "destructive" : "secondary")
+  }
 }
 
 export const columns: any[] = [
@@ -91,53 +180,11 @@ export const columns: any[] = [
       const profile = meta?.profile
       const currentRound = meta?.currentRound || 1
       const localChanges = meta?.localChanges || {}
-      
-      // Compute actual current statuses (applying unsaved local changes if they exist)
-      const r1s1 = localChanges[applicant.id]?.r1_status_1 || applicant.r1_status_1 || "Pending"
-      const r1s2 = localChanges[applicant.id]?.r1_status_2 || applicant.r1_status_2 || "Pending"
-      const r2s1 = localChanges[applicant.id]?.r2_status_1 || applicant.r2_status_1 || "Pending"
-      const r2s2 = localChanges[applicant.id]?.r2_status_2 || applicant.r2_status_2 || "Pending"
+      const domainFilter = meta?.domainFilter || null
 
-      if (profile?.role === "domain_lead") {
-        const domain = profile.domain
-        const isPriority1 = isFirstPriority(applicant, domain)
-        const isPriority2 = isSecondPriority(applicant, domain)
-        
-        let status = "Pending"
-        if (currentRound === 1) {
-          if (isPriority1) status = r1s1
-          else if (isPriority2) status = r1s2
-        } else {
-          if (isPriority1) status = r2s1
-          else if (isPriority2) status = r2s2
-        }
+      const display = getApplicantDisplayStatus(applicant, currentRound, profile, domainFilter, localChanges)
 
-        let variant: "default" | "secondary" | "destructive" | "outline" = "default"
-        if (status === "Pending") variant = "secondary"
-        else if (status === "Rejected") variant = "destructive"
-        else variant = "default"
-        
-        return <Badge variant={variant}>{status}</Badge>
-      }
-
-      // For Core Team / Admin: Show overall calculated status
-      let s1 = currentRound === 1 ? r1s1 : r2s1
-      let s2 = currentRound === 1 ? r1s2 : r2s2
-      
-      let overallStatus = "Pending Review"
-      let variant: "default" | "secondary" | "destructive" | "outline" = "secondary"
-
-      if (s1 === "Approved" || s2 === "Approved") {
-        overallStatus = "Shortlisted"
-        variant = "default"
-      } else if (s1 === "Rejected" && s2 === "Rejected") {
-        overallStatus = "Rejected"
-        variant = "destructive"
-      } else if (s1 === "Rejected" || s2 === "Rejected") {
-        overallStatus = "Pending Review" // waiting for the other domain
-      }
-
-      return <Badge variant={variant}>{overallStatus}</Badge>
+      return <Badge variant={display.variant}>{display.label}</Badge>
     },
   },
   {
