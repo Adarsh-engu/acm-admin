@@ -2,7 +2,20 @@
 
 import { recruitmentsDb } from "@/utils/supabase/recruitments-server"
 import { createClient } from "@/utils/supabase/server"
+import { createClient as createSupabaseClient } from "@supabase/supabase-js"
 import { revalidatePath } from "next/cache"
+
+// Admin client to bypass RLS for updating team_members
+const adminDb = createSupabaseClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!,
+  {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false,
+    },
+  }
+)
 
 // Batch save applicant statuses
 export async function saveApplicantStatuses(changes: Record<string, Record<string, string>>) {
@@ -52,7 +65,7 @@ export async function finalizeRound(round: 1 | 2, password: string) {
   // Password is correct, update the team_members record
   const fieldToUpdate = round === 1 ? "round_1_finalized" : "round_2_finalized"
   
-  const { data: updatedData, error: updateError } = await supabase
+  const { data: updatedData, error: updateError } = await adminDb
     .from("team_members")
     .update({ [fieldToUpdate]: true })
     .eq("id", user.id)
@@ -88,7 +101,7 @@ export async function globalFinalizeRound(round: 1 | 2) {
 
   const fieldToUpdate = round === 1 ? "round_1_finalized" : "round_2_finalized"
   
-  const { data: updatedData, error: updateError } = await supabase
+  const { data: updatedData, error: updateError } = await adminDb
     .from("team_members")
     .update({ [fieldToUpdate]: true })
     .eq("role", "central_admin")
