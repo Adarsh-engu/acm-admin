@@ -32,6 +32,8 @@ export default async function ApplicantsPage() {
       filters.push('first_priority.eq."PR (Public Relations) Team"', 'second_priority.eq."PR (Public Relations) Team"', 'first_priority.eq."Public Relations"', 'second_priority.eq."Public Relations"')
     } else if (domain === "Graphic" || domain === "Graphic Lead") {
       filters.push('first_priority.eq."Graphic Team"', 'second_priority.eq."Graphic Team"', 'first_priority.eq."Graphic Lead"', 'second_priority.eq."Graphic Lead"', 'first_priority.eq."Graphic"', 'second_priority.eq."Graphic"')
+    } else if (domain === "Arts") {
+      filters.push('first_priority.eq."ARTS Team"', 'second_priority.eq."ARTS Team"', 'first_priority.eq."Arts"', 'second_priority.eq."Arts"')
     } else {
       const domainTeam = `${domain} Team`
       filters.push(`first_priority.eq."${domain}"`, `second_priority.eq."${domain}"`, `first_priority.eq."${domainTeam}"`, `second_priority.eq."${domainTeam}"`)
