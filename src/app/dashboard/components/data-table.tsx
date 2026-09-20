@@ -85,6 +85,18 @@ export function DataTable({
   const [finalizeError, setFinalizeError] = React.useState<string | null>(null)
 
   const [domainFilter, setDomainFilter] = React.useState<string>("All Domains")
+  const [yearFilter, setYearFilter] = React.useState<string>("All Years")
+
+  const availableYears = React.useMemo(() => {
+    const yearSet = new Set<string>(["2nd Year", "3rd Year"])
+    data.forEach((applicant: any) => {
+      if (applicant?.year !== undefined && applicant?.year !== null) {
+        const y = String(applicant.year).trim()
+        if (y) yearSet.add(y)
+      }
+    })
+    return Array.from(yearSet).sort((a, b) => a.localeCompare(b, undefined, { numeric: true }))
+  }, [data])
 
   // Filter data for Domain Leads if round is finalized (hide rejected)
   // Also for Round 2, only show applicants approved in Round 1
@@ -113,8 +125,16 @@ export function DataTable({
       }
     }
 
+    // Filter by Year
+    if (yearFilter !== "All Years") {
+      result = result.filter(a => {
+        if (a?.year === undefined || a?.year === null) return false
+        return String(a.year).trim().toLowerCase() === yearFilter.toLowerCase()
+      })
+    }
+
     return result
-  }, [data, currentRound, profile, domainFilter])
+  }, [data, currentRound, profile, domainFilter, yearFilter])
 
   const updateLocalChange = (applicantId: string, field: string, value: string) => {
     setLocalChanges(prev => ({
@@ -174,9 +194,12 @@ export function DataTable({
   } as any)
 
   const handleExport = () => {
-    const exportData = filteredData.map((applicant: any) => {
+    const exportData = filteredData.map((applicant: any, index: number) => {
       const { id, created_at, r1_status_1, r1_status_2, r2_status_1, r2_status_2, ...rest } = applicant
-      return rest
+      return {
+        "S.No": index + 1,
+        ...rest
+      }
     })
     const ws = XLSX.utils.json_to_sheet(exportData)
     const wb = XLSX.utils.book_new()
@@ -188,6 +211,23 @@ export function DataTable({
   const isRoundFinalized = currentRound === 1 ? profile?.round_1_finalized : profile?.round_2_finalized
   const canFinalize = profile?.role === "domain_lead" && !isRoundFinalized
 
+  const hasPendingApplicants = React.useMemo(() => {
+    if (profile?.role !== "domain_lead") return false
+    return filteredData.some((a: any) => {
+      const isP1 = isFirstPriority(a, profile.domain)
+      const r1s1 = localChanges[a.id]?.r1_status_1 || a.r1_status_1 || "Pending"
+      const r1s2 = localChanges[a.id]?.r1_status_2 || a.r1_status_2 || "Pending"
+      const r2s1 = localChanges[a.id]?.r2_status_1 || a.r2_status_1 || "Pending"
+      const r2s2 = localChanges[a.id]?.r2_status_2 || a.r2_status_2 || "Pending"
+
+      const status = currentRound === 1 
+        ? (isP1 ? r1s1 : r1s2)
+        : (isP1 ? r2s1 : r2s2)
+      
+      return status === "Pending"
+    })
+  }, [filteredData, currentRound, profile, localChanges])
+
   return (
     <div>
       <div className="flex items-center justify-between py-4">
@@ -195,13 +235,19 @@ export function DataTable({
           {!hideRoundControls && (
             <div className="flex bg-surface border border-border/50 rounded-lg p-1">
               <button 
-                onClick={() => setLocalCurrentRound(1)}
+                onClick={() => {
+                  setLocalCurrentRound(1)
+                  setPagination(prev => ({ ...prev, pageIndex: 0 }))
+                }}
                 className={`px-4 py-1.5 rounded-md text-sm font-medium transition-colors ${currentRound === 1 ? 'bg-acm text-white' : 'text-muted-foreground hover:text-foreground'}`}
               >
                 Round 1
               </button>
               <button 
-                onClick={() => setLocalCurrentRound(2)}
+                onClick={() => {
+                  setLocalCurrentRound(2)
+                  setPagination(prev => ({ ...prev, pageIndex: 0 }))
+                }}
                 className={`px-4 py-1.5 rounded-md text-sm font-medium transition-colors ${currentRound === 2 ? 'bg-acm text-white' : 'text-muted-foreground hover:text-foreground'}`}
               >
                 Round 2
@@ -212,7 +258,10 @@ export function DataTable({
           {!hideRoundControls && profile?.role !== "domain_lead" && (
             <select 
               value={domainFilter}
-              onChange={(e) => setDomainFilter(e.target.value)}
+              onChange={(e) => {
+                setDomainFilter(e.target.value)
+                setPagination(prev => ({ ...prev, pageIndex: 0 }))
+              }}
               className="bg-surface border border-border/50 rounded-lg px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-acm/50"
             >
               <option value="All Domains">All Domains</option>
@@ -226,6 +275,24 @@ export function DataTable({
               <option value="Documentation">Documentation</option>
             </select>
           )}
+
+          <select 
+            value={yearFilter}
+            onChange={(e) => {
+              setYearFilter(e.target.value)
+              setPagination(prev => ({ ...prev, pageIndex: 0 }))
+            }}
+            className="bg-surface border border-border/50 rounded-lg px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-acm/50"
+          >
+            <option value="All Years">All Years</option>
+            {availableYears.map(year => (
+              <option key={year} value={year}>{year}</option>
+            ))}
+          </select>
+
+          <span className="text-xs font-medium px-3 py-2 rounded-lg bg-surface border border-border/50 text-muted-foreground whitespace-nowrap">
+            Total: {filteredData.length}
+          </span>
         </div>
 
         <div className="flex gap-3">
@@ -237,7 +304,22 @@ export function DataTable({
           )}
 
           {canFinalize && (
-            <Button onClick={() => setFinalizeOpen(true)} variant="outline" className="border-acm text-acm hover:bg-acm/10 gap-2">
+            <Button 
+              onClick={() => {
+                if (hasChanges) {
+                  alert("You must save your changes before finalizing.")
+                  return
+                }
+                if (hasPendingApplicants) {
+                  alert("All applicants must be Approved or Rejected before finalizing.")
+                  return
+                }
+                setFinalizeOpen(true)
+              }} 
+              variant="outline" 
+              className={`gap-2 ${hasChanges || hasPendingApplicants ? 'border-muted text-muted-foreground opacity-50 cursor-not-allowed' : 'border-acm text-acm hover:bg-acm/10'}`}
+              title={hasChanges ? "Save your changes first" : (hasPendingApplicants ? "All applicants must be decided" : "")}
+            >
               <Check className="w-4 h-4" />
               Finalize Round {currentRound}
             </Button>
@@ -263,7 +345,7 @@ export function DataTable({
               <TableRow key={headerGroup.id} className="border-border/50 hover:bg-transparent">
                 {headerGroup.headers.map((header) => {
                   return (
-                    <TableHead key={header.id} className="text-foreground font-semibold">
+                    <TableHead key={header.id} className={`text-foreground font-semibold ${header.id === "sno" ? "w-16" : ""}`}>
                       {header.isPlaceholder
                         ? null
                         : flexRender(
@@ -293,7 +375,7 @@ export function DataTable({
                   }}
                 >
                   {row.getAllCells().map((cell: any) => (
-                    <TableCell key={cell.id}>
+                    <TableCell key={cell.id} className={cell.column.id === "sno" ? "w-16" : ""}>
                       {flexRender(cell.column.columnDef.cell, cell.getContext())}
                     </TableCell>
                   ))}

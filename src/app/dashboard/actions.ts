@@ -2,6 +2,7 @@
 
 import { recruitmentsDb } from "@/utils/supabase/recruitments-server"
 import { createClient } from "@/utils/supabase/server"
+import { revalidatePath } from "next/cache"
 
 // Batch save applicant statuses
 export async function saveApplicantStatuses(changes: Record<string, Record<string, string>>) {
@@ -51,15 +52,21 @@ export async function finalizeRound(round: 1 | 2, password: string) {
   // Password is correct, update the team_members record
   const fieldToUpdate = round === 1 ? "round_1_finalized" : "round_2_finalized"
   
-  const { error: updateError } = await supabase
+  const { data: updatedData, error: updateError } = await supabase
     .from("team_members")
     .update({ [fieldToUpdate]: true })
     .eq("id", user.id)
+    .select()
 
   if (updateError) {
     return { error: "Failed to update database: " + updateError.message }
   }
 
+  if (!updatedData || updatedData.length === 0) {
+    return { error: "Permission denied: Could not update the record. This is likely an RLS issue or you are not a domain lead." }
+  }
+
+  revalidatePath("/dashboard", "layout")
   return { success: true }
 }
 
@@ -81,14 +88,20 @@ export async function globalFinalizeRound(round: 1 | 2) {
 
   const fieldToUpdate = round === 1 ? "round_1_finalized" : "round_2_finalized"
   
-  const { error: updateError } = await supabase
+  const { data: updatedData, error: updateError } = await supabase
     .from("team_members")
     .update({ [fieldToUpdate]: true })
     .eq("role", "central_admin")
+    .select()
 
   if (updateError) {
     return { error: "Failed to globally finalize: " + updateError.message }
   }
 
+  if (!updatedData || updatedData.length === 0) {
+    return { error: "Permission denied: Could not update the record." }
+  }
+
+  revalidatePath("/dashboard", "layout")
   return { success: true }
 }
