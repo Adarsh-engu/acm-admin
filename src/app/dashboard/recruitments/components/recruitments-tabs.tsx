@@ -3,7 +3,7 @@
 import React, { useState } from "react"
 import { Check, Lock, CheckCircle2, Circle, AlertCircle } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { globalFinalizeRound } from "../../actions"
+import { globalFinalizeRound, definalizeDomainRound } from "../../actions"
 import { useRouter } from "next/navigation"
 
 const DOMAINS = [
@@ -85,6 +85,22 @@ export function RecruitmentsTabs({
     }
   }
 
+  const handleDefinalizeDomain = async (domain: string, round: 1 | 2) => {
+    if (!confirm(`Are you sure you want to unlock Round ${round} for the ${domain} domain? This will allow the Domain Lead to make changes again.`)) {
+      return
+    }
+    
+    setIsFinalizing(true)
+    const res = await definalizeDomainRound(domain, round)
+    setIsFinalizing(false)
+    
+    if (res?.success) {
+      router.refresh()
+    } else {
+      alert(res?.error || "Failed to unlock domain")
+    }
+  }
+
   const renderDomainStats = (domain: string, round: 1 | 2) => {
     // Determine if this specific domain has finalized this round
     const domainLeadRecord = domainLeads.find(l => l.domain === domain)
@@ -125,10 +141,25 @@ export function RecruitmentsTabs({
         <div className="flex justify-between items-start">
           <h3 className="font-semibold text-lg">{domain}</h3>
           {isDomainFinalized ? (
-            <span className="flex items-center gap-1 text-xs font-medium text-green-500 bg-green-500/10 px-2 py-1 rounded-md border border-green-500/20">
-              <CheckCircle2 className="w-3 h-3" />
-              Finalized
-            </span>
+            <div className="flex items-center gap-2">
+              <span className="flex items-center gap-1 text-xs font-medium text-green-500 bg-green-500/10 px-2 py-1 rounded-md border border-green-500/20">
+                <CheckCircle2 className="w-3 h-3" />
+                Finalized
+              </span>
+              {isCentralAdmin && (
+                <button 
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    handleDefinalizeDomain(domain, round)
+                  }}
+                  disabled={isFinalizing}
+                  className="text-xs text-amber-500 hover:text-amber-600 bg-amber-500/10 hover:bg-amber-500/20 px-2 py-1 rounded-md border border-amber-500/20 transition-colors flex items-center gap-1"
+                  title={`Unlock Round ${round} for ${domain}`}
+                >
+                  Unlock
+                </button>
+              )}
+            </div>
           ) : (
             <span className="flex items-center gap-1 text-xs font-medium text-amber-500 bg-amber-500/10 px-2 py-1 rounded-md border border-amber-500/20">
               <Circle className="w-3 h-3" />

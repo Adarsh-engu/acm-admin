@@ -118,3 +118,36 @@ export async function globalFinalizeRound(round: 1 | 2) {
   revalidatePath("/dashboard", "layout")
   return { success: true }
 }
+
+// Definalize a specific domain's round (for Central Admin only)
+export async function definalizeDomainRound(domain: string, round: 1 | 2) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: "Unauthorized" }
+
+  const { data: profile } = await supabase
+    .from("team_members")
+    .select("role")
+    .eq("id", user.id)
+    .single()
+
+  if (profile?.role !== "central_admin") {
+    return { error: "Permission denied. Only Central Admins can perform this action." }
+  }
+
+  const fieldToUpdate = round === 1 ? "round_1_finalized" : "round_2_finalized"
+  
+  const { data: updatedData, error: updateError } = await adminDb
+    .from("team_members")
+    .update({ [fieldToUpdate]: false })
+    .eq("domain", domain)
+    .eq("role", "domain_lead")
+    .select()
+
+  if (updateError) {
+    return { error: "Failed to definalize domain: " + updateError.message }
+  }
+
+  revalidatePath("/dashboard", "layout")
+  return { success: true }
+}
